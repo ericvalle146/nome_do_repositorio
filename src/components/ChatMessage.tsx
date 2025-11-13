@@ -28,7 +28,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
   return (
     <div
       className={cn(
-        "flex gap-1.5 sm:gap-2.5 px-2.5 sm:px-3.5 py-3.5 sm:py-5",
+        "flex gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 sm:py-2",
         isUser ? "flex-row-reverse" : "flex-row"
       )}
     >

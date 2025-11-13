@@ -26,8 +26,11 @@ export default defineConfig(({ mode }) => {
       // Proxy para a API local (opcional, mas recomendado para evitar CORS)
       proxy: {
         '/api': {
-          target: env.VITE_API_URL || 'http://localhost:3001',
+          target: env.BACKEND_PORT
+            ? `http://localhost:${env.BACKEND_PORT}`
+            : 'http://localhost:3001',
           changeOrigin: true,
+          secure: false,
         },
       },
     },
