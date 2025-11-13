@@ -30,11 +30,21 @@ export function PromptEditor({ open, onClose }: PromptEditorProps) {
         if (import.meta.env.DEV) {
           return '' // Proxy do Vite em desenvolvimento
         }
+        
+        // Se VITE_API_URL está definido, verifica se é um nome de container Docker
         if (import.meta.env.VITE_API_URL) {
-          return import.meta.env.VITE_API_URL
+          const apiUrl = import.meta.env.VITE_API_URL
+          // Se contém nome de container Docker e estamos no navegador, usa o hostname atual
+          if (apiUrl.includes('versia-backend') && typeof window !== 'undefined') {
+            const port = apiUrl.match(/:(\d+)/)?.[1] || '3001'
+            return `${window.location.protocol}//${window.location.hostname}:${port}`
+          }
+          return apiUrl
         }
+        
+        // Fallback: usa o hostname atual com porta 3001
         if (typeof window !== 'undefined') {
-          return `${window.location.protocol}//${window.location.hostname}`
+          return `${window.location.protocol}//${window.location.hostname}:3001`
         }
         return ''
       }
@@ -79,11 +89,21 @@ export function PromptEditor({ open, onClose }: PromptEditorProps) {
         if (import.meta.env.DEV) {
           return '' // Proxy do Vite em desenvolvimento
         }
+        
+        // Se VITE_API_URL está definido, verifica se é um nome de container Docker
         if (import.meta.env.VITE_API_URL) {
-          return import.meta.env.VITE_API_URL
+          const apiUrl = import.meta.env.VITE_API_URL
+          // Se contém nome de container Docker e estamos no navegador, usa o hostname atual
+          if (apiUrl.includes('versia-backend') && typeof window !== 'undefined') {
+            const port = apiUrl.match(/:(\d+)/)?.[1] || '3001'
+            return `${window.location.protocol}//${window.location.hostname}:${port}`
+          }
+          return apiUrl
         }
+        
+        // Fallback: usa o hostname atual com porta 3001
         if (typeof window !== 'undefined') {
-          return `${window.location.protocol}//${window.location.hostname}`
+          return `${window.location.protocol}//${window.location.hostname}:3001`
         }
         return ''
       }
