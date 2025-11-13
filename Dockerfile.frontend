@@ -1,0 +1,44 @@
+# Dockerfile para o frontend (multi-stage build)
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copia arquivos de dependências
+COPY package*.json ./
+COPY tsconfig.json ./
+COPY tsconfig.node.json ./
+COPY vite.config.ts ./
+COPY tailwind.config.ts ./
+COPY postcss.config.js ./
+
+# Instala todas as dependências (incluindo devDependencies para build)
+RUN npm ci
+
+# Copia o código fonte
+COPY index.html ./
+COPY src/ ./src/
+COPY public/ ./public/
+
+# Build da aplicação
+RUN npm run build
+
+# Stage 2: Servir o frontend buildado
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Instala serve globalmente para servir arquivos estáticos
+RUN npm install -g serve
+
+# Copia os arquivos buildados do stage anterior
+COPY --from=builder /app/dist ./dist
+
+# Expõe a porta do frontend
+EXPOSE 4173
+
+# Variável de ambiente
+ENV PORT=4173
+
+# Comando para servir o frontend
+CMD ["serve", "-s", "dist", "-l", "4173", "--host", "0.0.0.0"]
+

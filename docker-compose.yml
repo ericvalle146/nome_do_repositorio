@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # Backend (API)
+  versia-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: versia-backend
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-3001}:3001"
+    environment:
+      - PORT=${BACKEND_PORT:-3001}
+      - NODE_ENV=production
+      - LOG_REQUESTS=${LOG_REQUESTS:-false}
+    networks:
+      - versia-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend (React/Vite)
+  versia-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: versia-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-4173}:4173"
+    environment:
+      - PORT=4173
+      - VITE_API_URL=${VITE_API_URL:-http://versia-backend:3001}
+      - VITE_WEBHOOK_URL=${VITE_WEBHOOK_URL}
+      - VITE_ALLOWED_HOSTS=${VITE_ALLOWED_HOSTS}
+    networks:
+      - versia-network
+    depends_on:
+      versia-backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4173"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  versia-network:
+    driver: bridge
+    name: versia-network
+

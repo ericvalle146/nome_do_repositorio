@@ -1,0 +1,24 @@
+# Dockerfile para o backend (API)
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copia arquivos de dependências
+COPY package*.json ./
+
+# Instala dependências
+RUN npm ci --only=production
+
+# Copia o código do servidor
+COPY server/ ./server/
+
+# Expõe a porta do backend
+EXPOSE 3001
+
+# Variável de ambiente padrão
+ENV PORT=3001
+ENV NODE_ENV=production
+
+# Comando para iniciar o servidor
+CMD ["node", "server/index.js"]
+
