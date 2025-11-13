@@ -3,6 +3,16 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Argumentos de build (variáveis VITE_* precisam estar no build)
+ARG VITE_API_URL
+ARG VITE_WEBHOOK_URL
+ARG VITE_ALLOWED_HOSTS
+
+# Define como variáveis de ambiente para o build
+ENV VITE_API_URL=${VITE_API_URL}
+ENV VITE_WEBHOOK_URL=${VITE_WEBHOOK_URL}
+ENV VITE_ALLOWED_HOSTS=${VITE_ALLOWED_HOSTS}
+
 # Copia arquivos de dependências
 COPY package*.json ./
 COPY tsconfig.json ./
@@ -19,7 +29,7 @@ COPY index.html ./
 COPY src/ ./src/
 COPY public/ ./public/
 
-# Build da aplicação
+# Build da aplicação (as variáveis VITE_* serão embedadas no código)
 RUN npm run build
 
 # Stage 2: Servir o frontend buildado
@@ -27,8 +37,9 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Instala serve globalmente para servir arquivos estáticos
-RUN npm install -g serve
+# Instala serve e curl (para healthcheck)
+RUN npm install -g serve && \
+    apk add --no-cache curl
 
 # Copia os arquivos buildados do stage anterior
 COPY --from=builder /app/dist ./dist

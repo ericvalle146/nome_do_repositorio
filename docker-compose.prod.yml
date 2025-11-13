@@ -19,7 +19,7 @@ services:
       # Conecta também à rede existente se necessário (descomente e ajuste)
       # - existing-network-name
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/api/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -34,17 +34,17 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.frontend
+      args:
+        # Variáveis VITE_* precisam estar no build (não apenas no runtime)
+        - VITE_API_URL=${VITE_API_URL:-http://versia-backend:3001}
+        - VITE_WEBHOOK_URL=${VITE_WEBHOOK_URL:-}
+        - VITE_ALLOWED_HOSTS=${VITE_ALLOWED_HOSTS:-}
     container_name: versia-frontend
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-4173}:4173"
     environment:
       - PORT=4173
-      # Em produção, use o nome do serviço Docker para comunicação interna
-      # Para acesso externo, use a URL pública (ngrok, domínio, etc)
-      - VITE_API_URL=${VITE_API_URL:-http://versia-backend:3001}
-      - VITE_WEBHOOK_URL=${VITE_WEBHOOK_URL}
-      - VITE_ALLOWED_HOSTS=${VITE_ALLOWED_HOSTS}
     networks:
       - versia-network
       # Conecta também à rede existente se necessário (descomente e ajuste)
@@ -53,7 +53,7 @@ services:
       versia-backend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4173"]
+      test: ["CMD", "curl", "-f", "http://localhost:4173"]
       interval: 30s
       timeout: 10s
       retries: 3
