@@ -73,8 +73,69 @@ else
   npm install
 fi
 
-log "Gerando build do frontend..."
+log "Carregando variáveis do .env para o build..."
+# Limpa variáveis antigas
+unset VITE_API_URL VITE_WEBHOOK_URL VITE_ALLOWED_HOSTS
+
+# Carrega variáveis VITE_* do .env
+if [ -f "$ENV_FILE" ]; then
+  # Exporta apenas variáveis VITE_* (ignora comentários e linhas vazias)
+  export $(grep -E '^VITE_' "$ENV_FILE" | grep -v '^#' | xargs)
+  
+  log "Variáveis carregadas:"
+  log "  VITE_API_URL=${VITE_API_URL:-NÃO DEFINIDO}"
+  log "  VITE_WEBHOOK_URL=${VITE_WEBHOOK_URL:-NÃO DEFINIDO}"
+  log "  VITE_ALLOWED_HOSTS=${VITE_ALLOWED_HOSTS:-NÃO DEFINIDO}"
+  
+  # Valida VITE_API_URL
+  if [ -z "$VITE_API_URL" ]; then
+    warn "VITE_API_URL não está definido no .env"
+    warn "Usando valor padrão: https://chatinho.versatecnologia.com.br"
+    export VITE_API_URL="https://chatinho.versatecnologia.com.br"
+  fi
+  
+  # Valida se não tem valores errados
+  if [[ "$VITE_API_URL" == *"conversa"* ]]; then
+    error "ERRO: VITE_API_URL no .env contém 'conversa' (domínio errado)!"
+    error "Corrija o .env para: VITE_API_URL=https://chatinho.versatecnologia.com.br"
+  fi
+  
+  if [[ "$VITE_API_URL" == *":3001"* ]] || [[ "$VITE_API_URL" == *":3002"* ]] || [[ "$VITE_API_URL" == *":4001"* ]]; then
+    warn "ATENÇÃO: VITE_API_URL contém porta!"
+    warn "A URL não deve conter porta. Remova a porta do .env"
+    warn "Valor atual: $VITE_API_URL"
+  fi
+else
+  warn "Arquivo .env não encontrado. Variáveis VITE_* não serão carregadas."
+fi
+
+log "Limpando build anterior..."
+rm -rf dist node_modules/.vite .vite .vite-cache
+
+log "Gerando build do frontend com variáveis do .env..."
+# Força modo produção
+export NODE_ENV=production
+export MODE=production
+
+# Build com as variáveis exportadas
 npm run build
+
+# Verifica se o build foi gerado corretamente
+if [ ! -d "dist" ]; then
+  error "ERRO: Build não foi gerado! Pasta dist não existe."
+fi
+
+log "Verificando build gerado..."
+# Verifica se não tem valores antigos
+if grep -r "conversa.versatecnologia.com.br" dist/ 2>/dev/null | head -1; then
+  error "ERRO: Build contém 'conversa'! O .env pode estar incorreto ou o build não foi atualizado."
+fi
+
+if grep -r ":3001" dist/ 2>/dev/null | grep -v ".map" | head -1; then
+  warn "ATENÇÃO: Build contém ':3001'. Verifique se é esperado."
+fi
+
+log "✅ Build gerado com sucesso"
 
 log "Parando processos anteriores do pm2 (se existirem)..."
 pm2 delete "$APP_NAME_SERVER" >/dev/null 2>&1 || true
