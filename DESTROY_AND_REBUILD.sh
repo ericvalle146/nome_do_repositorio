@@ -28,32 +28,47 @@ echo ""
 echo "🔥 Iniciando destruição..."
 echo ""
 
-# 1. PARA E REMOVE TUDO DO PM2
-echo "1️⃣ Parando e removendo processos PM2..."
-pm2 stop all 2>/dev/null || true
-pm2 delete all 2>/dev/null || true
-pm2 kill 2>/dev/null || true
-sleep 3
-echo "✅ PM2 limpo"
+# 1. PARA E REMOVE APENAS OS PROCESSOS DO VERSIA
+echo "1️⃣ Parando e removendo processos PM2 do VERSIA..."
+pm2 stop versia-server 2>/dev/null || true
+pm2 stop versia-web 2>/dev/null || true
+pm2 delete versia-server 2>/dev/null || true
+pm2 delete versia-web 2>/dev/null || true
+sleep 2
+echo "✅ Processos VERSIA removidos (outros serviços PM2 não foram afetados)"
 echo ""
 
-# 2. MATA PROCESSOS NA PORTA 4173 (frontend)
-echo "2️⃣ Matando processos na porta 4173..."
-lsof -ti:4173 | xargs kill -9 2>/dev/null || true
-sleep 1
-echo "✅ Porta 4173 liberada"
+# 2. MATA PROCESSOS NA PORTA 4173 (apenas se for do versia-web)
+echo "2️⃣ Verificando porta 4173..."
+# Verifica se há processo na porta e se é do versia
+PORT_PID=$(lsof -ti:4173 2>/dev/null || true)
+if [ ! -z "$PORT_PID" ]; then
+  # Verifica se o processo é do node/npm (versia-web)
+  if ps -p $PORT_PID -o comm= | grep -qE "(node|npm)"; then
+    echo "   Matando processo do versia-web na porta 4173..."
+    kill -9 $PORT_PID 2>/dev/null || true
+    sleep 1
+    echo "✅ Porta 4173 liberada"
+  else
+    echo "⚠️  Porta 4173 está em uso por outro processo (não será encerrado)"
+  fi
+else
+  echo "✅ Porta 4173 está livre"
+fi
 echo ""
 
-# 3. REMOVE TUDO (dist, caches, etc)
-echo "3️⃣ Removendo builds e caches..."
+# 3. REMOVE TUDO DO PROJETO VERSIA (apenas dentro deste diretório)
+echo "3️⃣ Removendo builds e caches do projeto VERSIA..."
+echo "   (Apenas arquivos dentro de: $APP_ROOT)"
 rm -rf dist
 rm -rf node_modules/.vite
 rm -rf .vite
 rm -rf .vite-cache
 rm -rf .cache
-find . -name "*.js.map" -delete 2>/dev/null || true
-find . -name ".vite" -type d -exec rm -rf {} + 2>/dev/null || true
-echo "✅ Limpeza completa"
+# Remove apenas .js.map dentro do diretório atual
+find . -maxdepth 10 -name "*.js.map" -delete 2>/dev/null || true
+find . -maxdepth 5 -name ".vite" -type d -exec rm -rf {} + 2>/dev/null || true
+echo "✅ Limpeza completa (apenas arquivos do projeto VERSIA)"
 echo ""
 
 # 4. VERIFICA .env
