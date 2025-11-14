@@ -116,7 +116,7 @@ export default function Index() {
       sessionIdRef.current = sessionId
     }
 
-    // Determina a URL base da API - FUNÇÃO QUE SEMPRE RECALCULA
+    // Determina a URL base da API - FUNÇÃO QUE SEMPRE RECALCULA E CORRIGE VALORES ERRADOS
     const getApiUrl = () => {
       console.log('🔍 [getApiUrl] Iniciando cálculo da URL da API...')
       console.log('🔍 [getApiUrl] import.meta.env.DEV:', import.meta.env.DEV)
@@ -127,29 +127,33 @@ export default function Index() {
         return '' // Proxy do Vite em desenvolvimento
       }
       
-      // Se VITE_API_URL está definido, usa ele (deve ser o domínio completo do backend)
+      // URL CORRETA (fallback seguro)
+      const CORRECT_URL = 'https://chatinho.versatecnologia.com.br'
+      
+      // Se VITE_API_URL está definido, valida e corrige se necessário
       if (import.meta.env.VITE_API_URL) {
-        const apiUrl = import.meta.env.VITE_API_URL
-        console.log('🔍 [getApiUrl] Usando VITE_API_URL do env:', apiUrl)
+        let apiUrl = String(import.meta.env.VITE_API_URL).trim()
+        console.log('🔍 [getApiUrl] VITE_API_URL do build:', apiUrl)
         
-        // VALIDAÇÃO: Remove porta se estiver presente (não deve ter)
-        if (apiUrl.includes(':3001') || apiUrl.includes(':3002') || apiUrl.includes(':4001')) {
-          console.error('❌ [getApiUrl] ERRO: VITE_API_URL contém porta!', apiUrl)
-          console.error('❌ [getApiUrl] A URL não deve conter porta. Remova a porta do .env')
+        // CORREÇÃO AUTOMÁTICA: Se contém valores errados, usa o correto
+        if (apiUrl.includes('conversa') || apiUrl.includes(':3001') || apiUrl.includes(':3002') || apiUrl.includes(':4001')) {
+          console.error('❌ [getApiUrl] ERRO DETECTADO: URL contém valores antigos!')
+          console.error('❌ [getApiUrl] URL incorreta:', apiUrl)
+          console.error('❌ [getApiUrl] Isso significa que o build foi feito com .env antigo!')
+          console.warn('🔧 [getApiUrl] CORRIGINDO AUTOMATICAMENTE para:', CORRECT_URL)
+          console.warn('🔧 [getApiUrl] Faça rebuild do frontend com .env correto!')
+          // Retorna URL correta mesmo que o build tenha valor errado
+          return CORRECT_URL
         }
         
-        // VALIDAÇÃO: Verifica se tem "conversa" (domínio errado)
-        if (apiUrl.includes('conversa')) {
-          console.error('❌ [getApiUrl] ERRO: VITE_API_URL contém "conversa" (domínio errado)!', apiUrl)
-          console.error('❌ [getApiUrl] Deve ser "chatinho.versatecnologia.com.br"')
-        }
-        
+        // Se passou na validação, usa a URL do env
+        console.log('✅ [getApiUrl] URL validada e correta:', apiUrl)
         return apiUrl
       }
       
       // Fallback: usa o domínio padrão do backend
-      console.log('🔍 [getApiUrl] Usando fallback padrão')
-      return 'https://chatinho.versatecnologia.com.br'
+      console.log('🔍 [getApiUrl] VITE_API_URL não definido, usando fallback padrão')
+      return CORRECT_URL
     }
 
     // FUNÇÃO PARA CONSTRUIR URL SSE - SEMPRE RECALCULA
