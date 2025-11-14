@@ -3,6 +3,7 @@ import { Bot, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/ThemeToggle"
 import { PromptEditor } from "@/components/PromptEditor"
+import { FontSizeControl } from "@/components/FontSizeControl"
 
 export function ChatHeader() {
   const [isPromptEditorOpen, setIsPromptEditorOpen] = useState(false)
@@ -28,6 +29,7 @@ export function ChatHeader() {
             >
               <FileText className="h-5 w-5" />
             </Button>
+            <FontSizeControl />
             <ThemeToggle />
           </div>
         </div>
