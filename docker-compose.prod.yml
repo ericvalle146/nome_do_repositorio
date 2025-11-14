@@ -9,9 +9,9 @@ services:
     container_name: versia-backend
     restart: unless-stopped
     ports:
-      - "${BACKEND_PORT:-3001}:3001"
+      - "${BACKEND_PORT:-3002}:3001"
     environment:
-      - PORT=${BACKEND_PORT:-3001}
+      - PORT=3001
       - NODE_ENV=production
       - LOG_REQUESTS=${LOG_REQUESTS:-false}
     networks:
@@ -36,7 +36,7 @@ services:
       dockerfile: Dockerfile.frontend
       args:
         # Variáveis VITE_* precisam estar no build (não apenas no runtime)
-        - VITE_API_URL=${VITE_API_URL:-http://versia-backend:3001}
+        - VITE_API_URL=${VITE_API_URL:-https://chatinho.versatecnologia.com.br}
         - VITE_WEBHOOK_URL=${VITE_WEBHOOK_URL:-}
         - VITE_ALLOWED_HOSTS=${VITE_ALLOWED_HOSTS:-}
     container_name: versia-frontend

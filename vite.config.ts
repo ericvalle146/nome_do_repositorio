@@ -28,7 +28,7 @@ export default defineConfig(({ mode }) => {
         '/api': {
           target: env.BACKEND_PORT
             ? `http://localhost:${env.BACKEND_PORT}`
-            : 'http://localhost:3001',
+            : 'http://localhost:3002',
           changeOrigin: true,
           secure: false,
         },

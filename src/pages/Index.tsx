@@ -27,7 +27,7 @@ export default function Index() {
   // Em desenvolvimento, usa o proxy do Vite. Em produção, usa a URL completa
   const apiUrl = import.meta.env.DEV 
     ? '' // Proxy do Vite em desenvolvimento
-    : (import.meta.env.VITE_API_URL || "http://localhost:3001")
+    : (import.meta.env.VITE_API_URL || "https://chatinho.versatecnologia.com.br")
 
   const shouldIgnoreMessage = (message: Message) => {
     const content = message.content?.trim().toLowerCase()
@@ -122,24 +122,13 @@ export default function Index() {
         return '' // Proxy do Vite em desenvolvimento
       }
       
-      // Se VITE_API_URL está definido, verifica se é um nome de container Docker
+      // Se VITE_API_URL está definido, usa ele (deve ser o domínio completo do backend)
       if (import.meta.env.VITE_API_URL) {
-        const apiUrl = import.meta.env.VITE_API_URL
-        // Se contém nome de container Docker (não tem http:// ou https:// com domínio válido)
-        // e estamos no navegador, usa o hostname atual
-        if (apiUrl.includes('versia-backend') && typeof window !== 'undefined') {
-          // Usa o hostname do navegador com a porta do backend
-          const port = apiUrl.match(/:(\d+)/)?.[1] || '3001'
-          return `${window.location.protocol}//${window.location.hostname}:${port}`
-        }
-        return apiUrl
+        return import.meta.env.VITE_API_URL
       }
       
-      // Fallback: usa o hostname atual com porta 3001
-      if (typeof window !== 'undefined') {
-        return `${window.location.protocol}//${window.location.hostname}:3001`
-      }
-      return ''
+      // Fallback: usa o domínio padrão do backend
+      return 'https://chatinho.versatecnologia.com.br'
     }
 
     const baseApiUrl = getApiUrl()
