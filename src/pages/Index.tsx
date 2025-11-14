@@ -116,33 +116,87 @@ export default function Index() {
       sessionIdRef.current = sessionId
     }
 
-    // Determina a URL base da API
+    // Determina a URL base da API - FUNÇÃO QUE SEMPRE RECALCULA
     const getApiUrl = () => {
+      console.log('🔍 [getApiUrl] Iniciando cálculo da URL da API...')
+      console.log('🔍 [getApiUrl] import.meta.env.DEV:', import.meta.env.DEV)
+      console.log('🔍 [getApiUrl] import.meta.env.VITE_API_URL:', import.meta.env.VITE_API_URL)
+      
       if (import.meta.env.DEV) {
+        console.log('🔍 [getApiUrl] Modo DEV - retornando string vazia (usa proxy)')
         return '' // Proxy do Vite em desenvolvimento
       }
       
       // Se VITE_API_URL está definido, usa ele (deve ser o domínio completo do backend)
       if (import.meta.env.VITE_API_URL) {
-        return import.meta.env.VITE_API_URL
+        const apiUrl = import.meta.env.VITE_API_URL
+        console.log('🔍 [getApiUrl] Usando VITE_API_URL do env:', apiUrl)
+        
+        // VALIDAÇÃO: Remove porta se estiver presente (não deve ter)
+        if (apiUrl.includes(':3001') || apiUrl.includes(':3002') || apiUrl.includes(':4001')) {
+          console.error('❌ [getApiUrl] ERRO: VITE_API_URL contém porta!', apiUrl)
+          console.error('❌ [getApiUrl] A URL não deve conter porta. Remova a porta do .env')
+        }
+        
+        // VALIDAÇÃO: Verifica se tem "conversa" (domínio errado)
+        if (apiUrl.includes('conversa')) {
+          console.error('❌ [getApiUrl] ERRO: VITE_API_URL contém "conversa" (domínio errado)!', apiUrl)
+          console.error('❌ [getApiUrl] Deve ser "chatinho.versatecnologia.com.br"')
+        }
+        
+        return apiUrl
       }
       
       // Fallback: usa o domínio padrão do backend
+      console.log('🔍 [getApiUrl] Usando fallback padrão')
       return 'https://chatinho.versatecnologia.com.br'
     }
 
-    const baseApiUrl = getApiUrl()
-    const baseUrl = baseApiUrl ? `${baseApiUrl}/api/events` : '/api/events'
-    const separator = baseUrl.includes("?") ? "&" : "?"
+    // FUNÇÃO PARA CONSTRUIR URL SSE - SEMPRE RECALCULA
+    const buildSseUrl = (sessionIdForUrl: string) => {
+      console.log('🔍 [buildSseUrl] Construindo URL SSE para sessionId:', sessionIdForUrl)
+      
+      const baseApiUrl = getApiUrl()
+      console.log('🔍 [buildSseUrl] baseApiUrl calculado:', baseApiUrl)
+      
+      const baseUrl = baseApiUrl ? `${baseApiUrl}/api/events` : '/api/events'
+      console.log('🔍 [buildSseUrl] baseUrl completo:', baseUrl)
+      
+      const separator = baseUrl.includes("?") ? "&" : "?"
+      const sseUrl = `${baseUrl}${separator}id=${encodeURIComponent(sessionIdForUrl)}`
+      
+      console.log('🔍 [buildSseUrl] URL SSE final construída:', sseUrl)
+      console.log('🔍 [buildSseUrl] Separador usado:', separator)
+      
+      // VALIDAÇÃO FINAL DA URL
+      if (sseUrl.includes(':3001') || sseUrl.includes(':3002') || sseUrl.includes(':4001')) {
+        console.error('❌ [buildSseUrl] ERRO: URL SSE contém porta!', sseUrl)
+        console.error('❌ [buildSseUrl] Isso não deveria acontecer. Verifique o código.')
+      }
+      
+      if (sseUrl.includes('conversa')) {
+        console.error('❌ [buildSseUrl] ERRO: URL SSE contém "conversa"!', sseUrl)
+        console.error('❌ [buildSseUrl] O build pode estar usando valores antigos.')
+      }
+      
+      return { sseUrl, baseApiUrl, baseUrl }
+    }
+
     // Usa sempre o sessionId do ref para garantir consistência
     const stableSessionId = sessionIdRef.current || currentSessionId
-    const sseUrl = `${baseUrl}${separator}id=${encodeURIComponent(stableSessionId)}`
+    const { sseUrl, baseApiUrl } = buildSseUrl(stableSessionId)
     
-    console.log('🔌 Conectando ao SSE:', sseUrl)
-    console.log('🔍 SessionId (state):', sessionId)
-    console.log('🔍 SessionId (ref):', sessionIdRef.current)
-    console.log('🔍 SessionId (usado):', stableSessionId)
-    console.log('🔍 ApiUrl:', baseApiUrl)
+    console.log('🔌 [useEffect] Conectando ao SSE com URL:', sseUrl)
+    console.log('🔍 [useEffect] SessionId (state):', sessionId)
+    console.log('🔍 [useEffect] SessionId (ref):', sessionIdRef.current)
+    console.log('🔍 [useEffect] SessionId (usado):', stableSessionId)
+    console.log('🔍 [useEffect] baseApiUrl:', baseApiUrl)
+    console.log('🔍 [useEffect] import.meta.env completo:', JSON.stringify({
+      DEV: import.meta.env.DEV,
+      VITE_API_URL: import.meta.env.VITE_API_URL,
+      MODE: import.meta.env.MODE,
+      PROD: import.meta.env.PROD
+    }, null, 2))
 
     // Fecha conexão anterior se existir
     if (eventSourceRef.current) {
@@ -160,24 +214,26 @@ export default function Index() {
     const RECONNECT_DELAY = 3000 // 3 segundos
 
     const connectSSE = () => {
+      console.log('🔄 [connectSSE] Iniciando conexão SSE...')
+      
       // Sempre usa o sessionId do ref para garantir consistência
       const stableSessionId = sessionIdRef.current
       
       if (!stableSessionId) {
-        console.log('⏳ SessionId não disponível no ref, cancelando conexão SSE')
+        console.log('⏳ [connectSSE] SessionId não disponível no ref, cancelando conexão SSE')
         // Tenta recuperar do localStorage
         try {
           const stored = window.localStorage.getItem(SESSION_STORAGE_KEY)
           if (stored && stored.trim().length > 0) {
             const trimmedId = stored.trim()
-            console.log('🔑 Recuperando sessionId do localStorage na connectSSE:', trimmedId)
+            console.log('🔑 [connectSSE] Recuperando sessionId do localStorage:', trimmedId)
             sessionIdRef.current = trimmedId
             setSessionId(trimmedId)
             // Reconecta com o ID correto
             setTimeout(() => connectSSE(), 100)
           }
         } catch (error) {
-          console.error('❌ Erro ao recuperar sessionId:', error)
+          console.error('❌ [connectSSE] Erro ao recuperar sessionId:', error)
         }
         return
       }
@@ -186,31 +242,42 @@ export default function Index() {
       try {
         const stored = window.localStorage.getItem(SESSION_STORAGE_KEY)
         if (stored && stored.trim() !== stableSessionId) {
-          console.error('❌ SessionId mudou! localStorage:', stored.trim(), 'ref:', stableSessionId)
+          console.error('❌ [connectSSE] SessionId mudou! localStorage:', stored.trim(), 'ref:', stableSessionId)
           // Restaura o sessionId do localStorage se estiver diferente
           sessionIdRef.current = stored.trim()
           setSessionId(stored.trim())
         }
       } catch (error) {
-        console.error('❌ Erro ao verificar sessionId no localStorage:', error)
+        console.error('❌ [connectSSE] Erro ao verificar sessionId no localStorage:', error)
       }
 
       // Fecha conexão anterior se existir
       if (eventSourceRef.current) {
-        console.log('🔌 Fechando conexão SSE anterior na função connectSSE...')
+        console.log('🔌 [connectSSE] Fechando conexão SSE anterior...')
         try {
           eventSourceRef.current.close()
         } catch (error) {
-          console.error('Erro ao fechar conexão anterior:', error)
+          console.error('❌ [connectSSE] Erro ao fechar conexão anterior:', error)
         }
         eventSourceRef.current = null
       }
 
-      // Reconstrói a URL com o sessionId atualizado do ref
-      const currentSseUrl = `${baseUrl}${separator}id=${encodeURIComponent(stableSessionId)}`
+      // IMPORTANTE: RECONSTRÓI A URL TODA VEZ (não usa valores do closure)
+      console.log('🔍 [connectSSE] Recalculando URL SSE (não usa valores do closure)...')
+      const { sseUrl: currentSseUrl } = buildSseUrl(stableSessionId)
       
-      console.log('🔄 Criando nova conexão SSE com sessionId:', stableSessionId)
-      console.log('🔗 URL SSE:', currentSseUrl)
+      console.log('🔄 [connectSSE] Criando nova conexão SSE')
+      console.log('🔗 [connectSSE] URL SSE final:', currentSseUrl)
+      console.log('🔑 [connectSSE] SessionId usado:', stableSessionId)
+      console.log('🌐 [connectSSE] window.location:', window.location.href)
+      console.log('🔍 [connectSSE] Verificando se URL contém valores antigos...')
+      
+      if (currentSseUrl.includes(':3001')) {
+        console.error('❌ [connectSSE] ERRO CRÍTICO: URL contém :3001!', currentSseUrl)
+      }
+      if (currentSseUrl.includes('conversa')) {
+        console.error('❌ [connectSSE] ERRO CRÍTICO: URL contém "conversa"!', currentSseUrl)
+      }
       
       // Cria nova conexão SSE
       const eventSource = new EventSource(currentSseUrl, {
@@ -322,7 +389,24 @@ export default function Index() {
       }
 
       eventSource.onerror = (error) => {
-        console.error('❌ Erro na conexão SSE:', error, eventSource.readyState)
+        console.error('❌ [onerror] Erro na conexão SSE')
+        console.error('❌ [onerror] Event:', error)
+        console.error('❌ [onerror] EventSource readyState:', eventSource.readyState)
+        console.error('❌ [onerror] EventSource URL:', eventSource.url)
+        console.error('❌ [onerror] EventSource withCredentials:', eventSource.withCredentials)
+        console.error('❌ [onerror] Tipo do erro:', error.type)
+        console.error('❌ [onerror] Target:', error.target)
+        
+        // Log detalhado da URL que falhou
+        if (eventSource.url) {
+          console.error('❌ [onerror] URL que falhou:', eventSource.url)
+          if (eventSource.url.includes(':3001')) {
+            console.error('❌ [onerror] PROBLEMA: URL contém :3001 (porta antiga)')
+          }
+          if (eventSource.url.includes('conversa')) {
+            console.error('❌ [onerror] PROBLEMA: URL contém "conversa" (domínio antigo)')
+          }
+        }
         
         // Se a conexão foi fechada, tenta reconectar
         if (eventSource.readyState === EventSource.CLOSED) {
