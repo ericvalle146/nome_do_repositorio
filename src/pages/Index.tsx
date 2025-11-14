@@ -148,7 +148,6 @@ export default function Index() {
 
     // Usa sempre o sessionId do ref para garantir consistência
     const stableSessionId = sessionIdRef.current || currentSessionId
-    const { sseUrl } = buildSseUrl(stableSessionId)
 
     // Fecha conexão anterior se existir
     if (eventSourceRef.current) {
