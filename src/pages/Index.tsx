@@ -24,10 +24,10 @@ export default function Index() {
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const reconnectAttemptsRef = useRef(0)
-  // Em desenvolvimento, usa o proxy do Vite. Em produção, usa a URL completa
+  // URL da API - SEMPRE usa a correta (sem porta, sem conversa)
   const apiUrl = import.meta.env.DEV 
     ? '' // Proxy do Vite em desenvolvimento
-    : (import.meta.env.VITE_API_URL || "https://chatinho.versatecnologia.com.br")
+    : 'https://chatinho.versatecnologia.com.br' // SEMPRE esta URL em produção
 
   const shouldIgnoreMessage = (message: Message) => {
     const content = message.content?.trim().toLowerCase()
@@ -116,74 +116,35 @@ export default function Index() {
       sessionIdRef.current = sessionId
     }
 
-    // Determina a URL base da API - FUNÇÃO QUE SEMPRE RECALCULA E CORRIGE VALORES ERRADOS
+    // FUNÇÃO QUE SEMPRE RETORNA URL CORRETA - REMOVE TUDO QUE É ERRADO
     const getApiUrl = () => {
-      console.log('🔍 [getApiUrl] Iniciando cálculo da URL da API...')
-      console.log('🔍 [getApiUrl] import.meta.env.DEV:', import.meta.env.DEV)
-      console.log('🔍 [getApiUrl] import.meta.env.VITE_API_URL:', import.meta.env.VITE_API_URL)
+      // URL CORRETA DEFINITIVA (SEM PORTA, SEM CONVERSA)
+      const CORRECT_URL = 'https://chatinho.versatecnologia.com.br'
       
       if (import.meta.env.DEV) {
-        console.log('🔍 [getApiUrl] Modo DEV - retornando string vazia (usa proxy)')
         return '' // Proxy do Vite em desenvolvimento
       }
       
-      // URL CORRETA (fallback seguro)
-      const CORRECT_URL = 'https://chatinho.versatecnologia.com.br'
-      
-      // Se VITE_API_URL está definido, valida e corrige se necessário
-      if (import.meta.env.VITE_API_URL) {
-        let apiUrl = String(import.meta.env.VITE_API_URL).trim()
-        console.log('🔍 [getApiUrl] VITE_API_URL do build:', apiUrl)
-        
-        // CORREÇÃO AUTOMÁTICA: Se contém valores errados, usa o correto
-        if (apiUrl.includes('conversa') || apiUrl.includes(':3001') || apiUrl.includes(':3002') || apiUrl.includes(':4001')) {
-          console.error('❌ [getApiUrl] ERRO DETECTADO: URL contém valores antigos!')
-          console.error('❌ [getApiUrl] URL incorreta:', apiUrl)
-          console.error('❌ [getApiUrl] Isso significa que o build foi feito com .env antigo!')
-          console.warn('🔧 [getApiUrl] CORRIGINDO AUTOMATICAMENTE para:', CORRECT_URL)
-          console.warn('🔧 [getApiUrl] Faça rebuild do frontend com .env correto!')
-          // Retorna URL correta mesmo que o build tenha valor errado
-          return CORRECT_URL
-        }
-        
-        // Se passou na validação, usa a URL do env
-        console.log('✅ [getApiUrl] URL validada e correta:', apiUrl)
-        return apiUrl
-      }
-      
-      // Fallback: usa o domínio padrão do backend
-      console.log('🔍 [getApiUrl] VITE_API_URL não definido, usando fallback padrão')
+      // SEMPRE retorna a URL correta, ignorando qualquer valor do build
+      // Isso garante que mesmo com build antigo, sempre usa a URL certa
       return CORRECT_URL
     }
 
-    // FUNÇÃO PARA CONSTRUIR URL SSE - SEMPRE RECALCULA
+    // FUNÇÃO PARA CONSTRUIR URL SSE - SEMPRE USA URL CORRETA
     const buildSseUrl = (sessionIdForUrl: string) => {
-      console.log('🔍 [buildSseUrl] Construindo URL SSE para sessionId:', sessionIdForUrl)
-      
+      // SEMPRE usa a URL correta (sem porta, sem conversa)
       const baseApiUrl = getApiUrl()
-      console.log('🔍 [buildSseUrl] baseApiUrl calculado:', baseApiUrl)
-      
       const baseUrl = baseApiUrl ? `${baseApiUrl}/api/events` : '/api/events'
-      console.log('🔍 [buildSseUrl] baseUrl completo:', baseUrl)
-      
       const separator = baseUrl.includes("?") ? "&" : "?"
       const sseUrl = `${baseUrl}${separator}id=${encodeURIComponent(sessionIdForUrl)}`
       
-      console.log('🔍 [buildSseUrl] URL SSE final construída:', sseUrl)
-      console.log('🔍 [buildSseUrl] Separador usado:', separator)
+      // GARANTE que a URL está correta (remove qualquer porta que possa ter vindo)
+      const cleanUrl = sseUrl
+        .replace(/:\d{4,5}\//g, '/') // Remove porta (ex: :3001/, :3002/)
+        .replace(/:\d{4,5}$/g, '') // Remove porta no final
+        .replace(/conversa\.versatecnologia\.com\.br/g, 'chatinho.versatecnologia.com.br') // Corrige domínio
       
-      // VALIDAÇÃO FINAL DA URL
-      if (sseUrl.includes(':3001') || sseUrl.includes(':3002') || sseUrl.includes(':4001')) {
-        console.error('❌ [buildSseUrl] ERRO: URL SSE contém porta!', sseUrl)
-        console.error('❌ [buildSseUrl] Isso não deveria acontecer. Verifique o código.')
-      }
-      
-      if (sseUrl.includes('conversa')) {
-        console.error('❌ [buildSseUrl] ERRO: URL SSE contém "conversa"!', sseUrl)
-        console.error('❌ [buildSseUrl] O build pode estar usando valores antigos.')
-      }
-      
-      return { sseUrl, baseApiUrl, baseUrl }
+      return { sseUrl: cleanUrl, baseApiUrl, baseUrl: cleanUrl.replace(/\?.*$/, '').replace(/\/api\/events$/, '') }
     }
 
     // Usa sempre o sessionId do ref para garantir consistência
@@ -266,25 +227,20 @@ export default function Index() {
         eventSourceRef.current = null
       }
 
-      // IMPORTANTE: RECONSTRÓI A URL TODA VEZ (não usa valores do closure)
-      console.log('🔍 [connectSSE] Recalculando URL SSE (não usa valores do closure)...')
+      // RECONSTRÓI A URL SEMPRE (garante URL limpa sem porta)
       const { sseUrl: currentSseUrl } = buildSseUrl(stableSessionId)
       
-      console.log('🔄 [connectSSE] Criando nova conexão SSE')
-      console.log('🔗 [connectSSE] URL SSE final:', currentSseUrl)
-      console.log('🔑 [connectSSE] SessionId usado:', stableSessionId)
-      console.log('🌐 [connectSSE] window.location:', window.location.href)
-      console.log('🔍 [connectSSE] Verificando se URL contém valores antigos...')
+      // VALIDAÇÃO FINAL: Garante que não tem porta nem conversa
+      const finalUrl = currentSseUrl
+        .replace(/:\d{4,5}\//g, '/')
+        .replace(/:\d{4,5}$/g, '')
+        .replace(/conversa\.versatecnologia\.com\.br/g, 'chatinho.versatecnologia.com.br')
       
-      if (currentSseUrl.includes(':3001')) {
-        console.error('❌ [connectSSE] ERRO CRÍTICO: URL contém :3001!', currentSseUrl)
-      }
-      if (currentSseUrl.includes('conversa')) {
-        console.error('❌ [connectSSE] ERRO CRÍTICO: URL contém "conversa"!', currentSseUrl)
-      }
+      console.log('🔄 [connectSSE] Criando conexão SSE')
+      console.log('🔗 [connectSSE] URL final (limpa):', finalUrl)
       
-      // Cria nova conexão SSE
-      const eventSource = new EventSource(currentSseUrl, {
+      // Cria nova conexão SSE com URL LIMPA (sem porta, sem conversa)
+      const eventSource = new EventSource(finalUrl, {
         withCredentials: false
       })
       eventSourceRef.current = eventSource
