@@ -5,7 +5,7 @@ set -euo pipefail
 APP_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$APP_ROOT"
 
-BACKEND_PORT="${BACKEND_PORT:-3001}"
+BACKEND_PORT="${BACKEND_PORT:-3002}"
 FRONTEND_PORT="${FRONTEND_PORT:-4173}"
 
 APP_NAME_SERVER="versia-server"
