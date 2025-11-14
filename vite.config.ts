@@ -62,6 +62,16 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    // Configuração do preview (servidor de produção)
+    preview: {
+      host: true,
+      allowedHosts: [
+        'chatinho.versatecnologia.com.br',
+        'conversa.versatecnologia.com.br', // Permite acesso mesmo se acessar por este domínio
+        '.versatecnologia.com.br', // Permite qualquer subdomínio
+        'localhost',
+      ],
+    },
   }
 })
 
