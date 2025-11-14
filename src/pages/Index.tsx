@@ -146,9 +146,6 @@ export default function Index() {
       return { sseUrl, baseApiUrl, baseUrl: baseApiUrl || '' }
     }
 
-    // Usa sempre o sessionId do ref para garantir consistência
-    const stableSessionId = sessionIdRef.current || currentSessionId
-
     // Fecha conexão anterior se existir
     if (eventSourceRef.current) {
       console.log('🔌 Fechando conexão SSE anterior...')
