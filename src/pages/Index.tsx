@@ -130,38 +130,25 @@ export default function Index() {
       return CORRECT_URL
     }
 
-    // FUNÇÃO PARA CONSTRUIR URL SSE - SEMPRE USA URL CORRETA
+    // FUNÇÃO PARA CONSTRUIR URL SSE - SEMPRE USA URL CORRETA (SEM PORTA)
     const buildSseUrl = (sessionIdForUrl: string) => {
-      // SEMPRE usa a URL correta (sem porta, sem conversa)
-      const baseApiUrl = getApiUrl()
+      const baseApiUrl = getApiUrl() // Sempre retorna URL correta
       const baseUrl = baseApiUrl ? `${baseApiUrl}/api/events` : '/api/events'
       const separator = baseUrl.includes("?") ? "&" : "?"
-      const sseUrl = `${baseUrl}${separator}id=${encodeURIComponent(sessionIdForUrl)}`
+      let sseUrl = `${baseUrl}${separator}id=${encodeURIComponent(sessionIdForUrl)}`
       
-      // GARANTE que a URL está correta (remove qualquer porta que possa ter vindo)
-      const cleanUrl = sseUrl
-        .replace(/:\d{4,5}\//g, '/') // Remove porta (ex: :3001/, :3002/)
+      // REMOVE QUALQUER PORTA que possa aparecer (garantia extra)
+      sseUrl = sseUrl
+        .replace(/:\d{4,5}\//g, '/') // Remove :3001/, :3002/, etc
         .replace(/:\d{4,5}$/g, '') // Remove porta no final
         .replace(/conversa\.versatecnologia\.com\.br/g, 'chatinho.versatecnologia.com.br') // Corrige domínio
       
-      return { sseUrl: cleanUrl, baseApiUrl, baseUrl: cleanUrl.replace(/\?.*$/, '').replace(/\/api\/events$/, '') }
+      return { sseUrl, baseApiUrl, baseUrl: baseApiUrl || '' }
     }
 
     // Usa sempre o sessionId do ref para garantir consistência
     const stableSessionId = sessionIdRef.current || currentSessionId
-    const { sseUrl, baseApiUrl } = buildSseUrl(stableSessionId)
-    
-    console.log('🔌 [useEffect] Conectando ao SSE com URL:', sseUrl)
-    console.log('🔍 [useEffect] SessionId (state):', sessionId)
-    console.log('🔍 [useEffect] SessionId (ref):', sessionIdRef.current)
-    console.log('🔍 [useEffect] SessionId (usado):', stableSessionId)
-    console.log('🔍 [useEffect] baseApiUrl:', baseApiUrl)
-    console.log('🔍 [useEffect] import.meta.env completo:', JSON.stringify({
-      DEV: import.meta.env.DEV,
-      VITE_API_URL: import.meta.env.VITE_API_URL,
-      MODE: import.meta.env.MODE,
-      PROD: import.meta.env.PROD
-    }, null, 2))
+    const { sseUrl } = buildSseUrl(stableSessionId)
 
     // Fecha conexão anterior se existir
     if (eventSourceRef.current) {
@@ -227,19 +214,10 @@ export default function Index() {
         eventSourceRef.current = null
       }
 
-      // RECONSTRÓI A URL SEMPRE (garante URL limpa sem porta)
-      const { sseUrl: currentSseUrl } = buildSseUrl(stableSessionId)
+      // RECONSTRÓI A URL (já vem limpa da função buildSseUrl)
+      const { sseUrl: finalUrl } = buildSseUrl(stableSessionId)
       
-      // VALIDAÇÃO FINAL: Garante que não tem porta nem conversa
-      const finalUrl = currentSseUrl
-        .replace(/:\d{4,5}\//g, '/')
-        .replace(/:\d{4,5}$/g, '')
-        .replace(/conversa\.versatecnologia\.com\.br/g, 'chatinho.versatecnologia.com.br')
-      
-      console.log('🔄 [connectSSE] Criando conexão SSE')
-      console.log('🔗 [connectSSE] URL final (limpa):', finalUrl)
-      
-      // Cria nova conexão SSE com URL LIMPA (sem porta, sem conversa)
+      // Cria conexão SSE com URL correta (sem porta, sem conversa)
       const eventSource = new EventSource(finalUrl, {
         withCredentials: false
       })
