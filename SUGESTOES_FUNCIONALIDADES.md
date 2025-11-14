@@ -110,7 +110,7 @@
 - **Benefício:** Funciona mesmo sem conexão estável
 
 ### 17. **Histórico de Comandos**
-- Mostrar histórico de comandos usados (ex: `/clear`)
+- Mostrar histórico de comandos usados (ex: "Limpar histórico")
 - Autocomplete de comandos ao digitar `/`
 - **Benefício:** Descobre funcionalidades disponíveis
 

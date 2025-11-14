@@ -69,8 +69,8 @@ export function ChatInput({ onSendMessage, disabled = false }: ChatInputProps) {
 
   const handleClearClick = () => {
     if (disabled) return
-    // Envia "/clear" automaticamente
-    onSendMessage("/clear")
+    // Envia "Limpar histórico" automaticamente
+    onSendMessage("Limpar histórico")
     setMessage("")
     shouldFocusRef.current = true
   }
@@ -109,7 +109,7 @@ export function ChatInput({ onSendMessage, disabled = false }: ChatInputProps) {
               placeholder="Digite sua dúvida sobre o e-SUS APS..."
               onKeyDown={handleKeyDown}
               disabled={disabled}
-              className="min-h-[48px] sm:min-h-[52px] pr-20 sm:pr-24 resize-none text-sm sm:text-base"
+              className="min-h-[48px] sm:min-h-[52px] pr-32 sm:pr-36 resize-none text-sm sm:text-base"
               rows={1}
             />
             <div className="absolute right-1 sm:right-1.5 bottom-1 sm:bottom-1.5 flex items-center gap-1.5">
@@ -127,7 +127,7 @@ export function ChatInput({ onSendMessage, disabled = false }: ChatInputProps) {
                   e.preventDefault()
                 }}
               >
-                /clear
+                Limpar histórico
               </Button>
               <Button
                 type="submit"
